@@ -100,24 +100,26 @@ class AudioLoaderThread(QThread):
 class ShaderEffects:
     @staticmethod
     def apply_bloom(painter, points, hue, intensity, bloom_radius=20):
-        """Apply bloom/glow effect to points"""
-        if not points:
+        """Apply bloom/glow effect to the entire path"""
+        if len(points) < 2:
             return
-        
-        # Draw multiple layers of glow
+
+        path = QPainterPath()
+        path.moveTo(points[0])
+        for p in points[1:]:
+            path.lineTo(p)
+
         for layer in range(3):
             radius = bloom_radius * (3 - layer)
             alpha = int(intensity * (0.3 / (layer + 1)))
-            
-            for point in points[-10:]:  # Only recent points
-                gradient = QRadialGradient(point, radius)
-                color = QColor.fromHsv(hue, 200, 255, alpha)
-                gradient.setColorAt(0, color)
-                gradient.setColorAt(1, QColor(0, 0, 0, 0))
-                
-                painter.setBrush(QBrush(gradient))
-                painter.setPen(Qt.PenStyle.NoPen)
-                painter.drawEllipse(point, radius, radius)
+
+            color = QColor.fromHsv(hue, 200, 255, alpha)
+            pen = QPen(color)
+            pen.setWidth(radius)
+            pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+            painter.setPen(pen)
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.drawPath(path)
     
     @staticmethod
     def draw_phosphor_trail(painter, path, hue, trail_alpha, thickness=2.0):
@@ -175,6 +177,27 @@ def generate_wave(wave_type, freq, amp, samplerate=44100, duration=1.0):
         return amp * 2 * (t * freq - np.floor(0.5 + t * freq))
     else:
         return np.zeros_like(t)
+
+def generate_wave_cycle(wave_type, freq, amp, samplerate=44100):
+    """Generate a single cycle that loops seamlessly"""
+    if freq <= 0:
+        return np.zeros(1)
+
+    samples = max(1, int(round(samplerate / freq)))
+    t = np.arange(samples) / samplerate
+
+    if wave_type == 'sine':
+        wave = np.sin(2 * np.pi * freq * t)
+    elif wave_type == 'square':
+        wave = np.sign(np.sin(2 * np.pi * freq * t))
+    elif wave_type == 'triangle':
+        wave = 2 * np.arcsin(np.sin(2 * np.pi * freq * t)) / np.pi
+    elif wave_type == 'sawtooth':
+        wave = 2 * (t * freq - np.floor(0.5 + t * freq))
+    else:
+        wave = np.zeros(samples)
+
+    return amp * wave
 
 class AudioOutput:
     def __init__(self):
@@ -239,14 +262,22 @@ class AudioOutput:
     def generate_continuous_buffer(self):
         if self.is_file_mode:
             return
-        self.last_params = (self.left_wave, self.left_freq, self.left_amp, 
-                          self.right_wave, self.right_freq, self.right_amp)
-        duration = 10.0
-        l = generate_wave(self.left_wave, self.left_freq, self.left_amp, duration=duration)
-        r = generate_wave(self.right_wave, self.right_freq, self.right_amp, duration=duration)
-        stereo = np.vstack((l, r)).T
+        self.last_params = (
+            self.left_wave, self.left_freq, self.left_amp,
+            self.right_wave, self.right_freq, self.right_amp
+        )
+
+        l_cycle = generate_wave_cycle(self.left_wave, self.left_freq, self.left_amp)
+        r_cycle = generate_wave_cycle(self.right_wave, self.right_freq, self.right_amp)
+        stereo_cycle = np.vstack((l_cycle, r_cycle)).T
+
+        # Build 1 second buffer for display purposes
+        samples = 44100
+        reps = samples // len(stereo_cycle) + 1
+        stereo = np.tile(stereo_cycle, (reps, 1))[:samples]
         self.latest_stereo = stereo.copy()
-        stereo_int = (stereo * 32767).astype(np.int16)
+
+        stereo_int = (stereo_cycle * 32767).astype(np.int16)
         new_sound = pygame.sndarray.make_sound(stereo_int.copy())
         
         if self.channel:
