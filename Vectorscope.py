@@ -93,24 +93,29 @@ class AudioLoaderThread(QThread):
 class ShaderEffects:
     @staticmethod
     def apply_bloom(painter, points, hue, intensity, bloom_radius=20):
-        """Apply bloom/glow effect to points"""
+        """Apply bloom/glow effect to points with additive blending."""
         if not points:
             return
-        
-        # Draw multiple layers of glow
+
+        painter.save()
+        painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Plus)
+
+        # Draw multiple layers of glow with increasing radius
         for layer in range(3):
-            radius = bloom_radius * (3 - layer)
-            alpha = int(intensity * (0.3 / (layer + 1)))
-            
+            radius = bloom_radius * (layer + 1)
+            alpha = int(intensity * (0.4 / (layer + 1)))
+
             for point in points[-10:]:  # Only recent points
                 gradient = QRadialGradient(point, radius)
                 color = QColor.fromHsv(hue, 200, 255, alpha)
                 gradient.setColorAt(0, color)
                 gradient.setColorAt(1, QColor(0, 0, 0, 0))
-                
+
                 painter.setBrush(QBrush(gradient))
                 painter.setPen(Qt.PenStyle.NoPen)
                 painter.drawEllipse(point, radius, radius)
+
+        painter.restore()
     
     @staticmethod
     def draw_phosphor_trail(painter, path, hue, trail_alpha, thickness=2.0):
@@ -676,8 +681,42 @@ class MainWindow(QMainWindow):
         
         # Draw phosphor trail
         if self.scope.phosphor_decay:
-            ShaderEffects.draw_phosphor_trail(painter, self.scope.path_history, self.scope.hue, self.scope.trail_alpha, self.scope.beam_width)
+            ShaderEffects.draw_phosphor_trail(
+                painter,
+                self.scope.path_history,
+                self.scope.hue,
+                self.scope.trail_alpha,
+                self.scope.beam_width,
+            )
         else:
-            # Simple trail
+            # Simple trail if phosphor effect disabled
             pen = QPen(QColor.fromHsv(self.scope.hue, 255, 255, self.scope.trail_alpha))
-            pen.setWidthF(self.scope.beam
+            pen.setWidthF(self.scope.beam_width)
+            pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+            painter.setPen(pen)
+            for i in range(1, len(path)):
+                painter.drawLine(path[i - 1], path[i])
+
+        # Bright beam core for recent samples
+        ShaderEffects.draw_beam_core(painter, path, self.scope.glow_intensity)
+
+        painter.end()
+        self.scope.setPixmap(QPixmap.fromImage(img))
+
+    def closeEvent(self, event):
+        """Ensure audio resources are released on exit."""
+        self.audio.cleanup()
+        event.accept()
+
+
+def main():
+    app = QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+    ret = app.exec()
+    window.audio.cleanup()
+    sys.exit(ret)
+
+
+if __name__ == "__main__":
+    main()
