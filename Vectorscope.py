@@ -11,7 +11,16 @@ from PyQt6.QtWidgets import (
     QMainWindow, QGroupBox, QDoubleSpinBox
 )
 from PyQt6.QtCore import Qt, QTimer, QPointF, pyqtSignal, QThread
-from PyQt6.QtGui import QPixmap, QPainter, QColor, QPen, QImage, QRadialGradient, QBrush
+from PyQt6.QtGui import (
+    QPixmap,
+    QPainter,
+    QColor,
+    QPen,
+    QImage,
+    QRadialGradient,
+    QBrush,
+    QPainterPath,
+)
 
 try:
     from pydub import AudioSegment
