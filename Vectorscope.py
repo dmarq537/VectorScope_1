@@ -18,7 +18,10 @@ try:
     PYDUB_AVAILABLE = True
 except ImportError:
     PYDUB_AVAILABLE = False
-    print("pydub not available - limited audio format support")
+    print(
+        "pydub not available - limited audio format support. "
+        "Install it with 'pip install pydub' for additional codecs."
+    )
 
 # === AUDIO PROCESSING THREAD ===
 class AudioLoaderThread(QThread):
@@ -87,7 +90,11 @@ class AudioLoaderThread(QThread):
                 audio_data = audio_array.reshape(-1, 2) / 32768.0
                 return {'data': audio_data, 'wav_path': self.file_path, 'temp': False}
         
-        raise Exception("Unsupported audio format")
+        if PYDUB_AVAILABLE:
+            raise Exception("Unsupported audio format")
+        raise Exception(
+            "Unsupported audio format. Install pydub for broader file support."
+        )
 
 # === SHADER-LIKE EFFECTS ===
 class ShaderEffects:
