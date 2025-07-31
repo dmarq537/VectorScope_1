@@ -8,7 +8,7 @@ import tempfile
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QLabel, QSizePolicy, QVBoxLayout, QHBoxLayout,
     QSlider, QComboBox, QFileDialog, QPushButton, QCheckBox,
-    QMainWindow, QGroupBox, QSpinBox
+    QMainWindow, QGroupBox, QDoubleSpinBox
 )
 from PyQt6.QtCore import Qt, QTimer, QPointF, pyqtSignal, QThread
 from PyQt6.QtGui import QPixmap, QPainter, QColor, QPen, QImage, QRadialGradient, QBrush
@@ -454,9 +454,11 @@ class MainWindow(QMainWindow):
         
         freq_layout = QHBoxLayout()
         freq_layout.addWidget(QLabel("Frequency:"))
-        self.left_freq_spin = QSpinBox()
-        self.left_freq_spin.setRange(20, 2000)
-        self.left_freq_spin.setValue(440)
+        self.left_freq_spin = QDoubleSpinBox()
+        self.left_freq_spin.setDecimals(3)
+        self.left_freq_spin.setSingleStep(0.001)
+        self.left_freq_spin.setRange(20.0, 2000.0)
+        self.left_freq_spin.setValue(440.0)
         self.left_freq_spin.valueChanged.connect(lambda val: setattr(self.audio, 'left_freq', val))
         freq_layout.addWidget(self.left_freq_spin)
         freq_layout.addWidget(QLabel("Hz"))
@@ -488,9 +490,11 @@ class MainWindow(QMainWindow):
         
         freq_layout = QHBoxLayout()
         freq_layout.addWidget(QLabel("Frequency:"))
-        self.right_freq_spin = QSpinBox()
-        self.right_freq_spin.setRange(20, 2000)
-        self.right_freq_spin.setValue(440)
+        self.right_freq_spin = QDoubleSpinBox()
+        self.right_freq_spin.setDecimals(3)
+        self.right_freq_spin.setSingleStep(0.001)
+        self.right_freq_spin.setRange(20.0, 2000.0)
+        self.right_freq_spin.setValue(440.0)
         self.right_freq_spin.valueChanged.connect(lambda val: setattr(self.audio, 'right_freq', val))
         freq_layout.addWidget(self.right_freq_spin)
         freq_layout.addWidget(QLabel("Hz"))
