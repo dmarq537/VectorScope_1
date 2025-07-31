@@ -4,14 +4,14 @@ import numpy as np
 import pygame
 import time
 import tempfile
-import traceback
+
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QLabel, QSizePolicy, QVBoxLayout, QHBoxLayout,
-    QSlider, QComboBox, QFileDialog, QPushButton, QDoubleSpinBox, QCheckBox,
-    QFrame, QMainWindow, QGroupBox, QSpinBox
+    QSlider, QComboBox, QFileDialog, QPushButton, QCheckBox,
+    QMainWindow, QGroupBox, QSpinBox
 )
 from PyQt6.QtCore import Qt, QTimer, QPointF, pyqtSignal, QThread
-from PyQt6.QtGui import QPixmap, QPainter, QColor, QPen, QImage, QRadialGradient, QBrush, QPainterPath
+from PyQt6.QtGui import QPixmap, QPainter, QColor, QPen, QImage, QRadialGradient, QBrush
 
 try:
     from pydub import AudioSegment
@@ -19,12 +19,6 @@ try:
 except ImportError:
     PYDUB_AVAILABLE = False
     print("pydub not available - limited audio format support")
-
-try:
-    from scipy.io import wavfile
-    SCIPY_AVAILABLE = True
-except ImportError:
-    SCIPY_AVAILABLE = False
 
 # === AUDIO PROCESSING THREAD ===
 class AudioLoaderThread(QThread):
