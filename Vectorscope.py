@@ -393,6 +393,12 @@ class MainWindow(QMainWindow):
         self.timer.timeout.connect(self.update_scope)
         self.timer.start(16)  # 60 FPS for smooth animation
 
+    def closeEvent(self, event):
+        """Handle window close and clean up resources."""
+        self.audio.cleanup()
+        pygame.mixer.quit()
+        super().closeEvent(event)
+
     def create_top_controls(self, parent_layout):
         """Create top control panel"""
         top_group = QGroupBox("Audio Source")
@@ -701,3 +707,11 @@ class MainWindow(QMainWindow):
 
         painter.end()
         self.scope.setPixmap(QPixmap.fromImage(img))
+
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+    app.exec()
+    pygame.quit()
