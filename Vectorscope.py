@@ -541,6 +541,16 @@ class MainWindow(QMainWindow):
         self.trail_slider.valueChanged.connect(lambda val: setattr(self.scope, 'trail_alpha', val))
         trail_layout.addWidget(self.trail_slider)
         display_layout.addLayout(trail_layout)
+
+        # Beam width
+        beam_layout = QHBoxLayout()
+        beam_layout.addWidget(QLabel("Beam:"))
+        self.beam_slider = QSlider(Qt.Orientation.Horizontal)
+        self.beam_slider.setRange(1, 10)
+        self.beam_slider.setValue(2)
+        self.beam_slider.valueChanged.connect(lambda val: setattr(self.scope, 'beam_width', val))
+        beam_layout.addWidget(self.beam_slider)
+        display_layout.addLayout(beam_layout)
         
         # Glow
         glow_layout = QHBoxLayout()
@@ -680,4 +690,14 @@ class MainWindow(QMainWindow):
         else:
             # Simple trail
             pen = QPen(QColor.fromHsv(self.scope.hue, 255, 255, self.scope.trail_alpha))
-            pen.setWidthF(self.scope.beam
+            pen.setWidthF(self.scope.beam_width)
+            pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+            painter.setPen(pen)
+            for i in range(1, len(path)):
+                painter.drawLine(path[i - 1], path[i])
+
+        # Optionally draw a bright core
+        ShaderEffects.draw_beam_core(painter, path, self.scope.glow_intensity)
+
+        painter.end()
+        self.scope.setPixmap(QPixmap.fromImage(img))
