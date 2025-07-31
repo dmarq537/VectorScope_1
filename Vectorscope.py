@@ -278,6 +278,19 @@ class AudioOutput:
 
         l_cycle = generate_wave_cycle(self.left_wave, self.left_freq, self.left_amp)
         r_cycle = generate_wave_cycle(self.right_wave, self.right_freq, self.right_amp)
+
+        # Ensure both channels have the same length so they can be stacked
+        len_l = len(l_cycle)
+        len_r = len(r_cycle)
+        if len_l != len_r:
+            lcm = np.lcm(len_l, len_r)
+            if len_l != lcm:
+                reps = lcm // len_l + (lcm % len_l > 0)
+                l_cycle = np.tile(l_cycle, reps)[:lcm]
+            if len_r != lcm:
+                reps = lcm // len_r + (lcm % len_r > 0)
+                r_cycle = np.tile(r_cycle, reps)[:lcm]
+
         stereo_cycle = np.vstack((l_cycle, r_cycle)).T
 
         # Build 1 second buffer for display purposes
