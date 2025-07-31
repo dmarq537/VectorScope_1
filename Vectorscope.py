@@ -2,6 +2,8 @@ import sys
 import os
 import numpy as np
 import pygame
+import math
+from fractions import Fraction
 import time
 import tempfile
 
@@ -208,6 +210,17 @@ def generate_wave_cycle(wave_type, freq, amp, samplerate=44100):
 
     return amp * wave
 
+def get_period_samples(freq, samplerate=44100):
+    """Return the number of samples for a seamless cycle."""
+    if freq <= 0:
+        return 1
+    frac = Fraction(freq, samplerate).limit_denominator()
+    return frac.denominator
+
+def lcm(a, b):
+    """Least common multiple."""
+    return abs(a * b) // math.gcd(a, b)
+
 class AudioOutput:
     def __init__(self):
         pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
@@ -276,20 +289,14 @@ class AudioOutput:
             self.right_wave, self.right_freq, self.right_amp
         )
 
-        l_cycle = generate_wave_cycle(self.left_wave, self.left_freq, self.left_amp)
-        r_cycle = generate_wave_cycle(self.right_wave, self.right_freq, self.right_amp)
+        left_period = get_period_samples(self.left_freq)
+        right_period = get_period_samples(self.right_freq)
+        total_period = lcm(left_period, right_period)
 
-        # Ensure both channels have the same length so they can be stacked
-        len_l = len(l_cycle)
-        len_r = len(r_cycle)
-        if len_l != len_r:
-            lcm = np.lcm(len_l, len_r)
-            if len_l != lcm:
-                reps = lcm // len_l + (lcm % len_l > 0)
-                l_cycle = np.tile(l_cycle, reps)[:lcm]
-            if len_r != lcm:
-                reps = lcm // len_r + (lcm % len_r > 0)
-                r_cycle = np.tile(r_cycle, reps)[:lcm]
+        l_cycle = generate_wave(self.left_wave, self.left_freq, self.left_amp,
+                                duration=total_period / 44100)
+        r_cycle = generate_wave(self.right_wave, self.right_freq, self.right_amp,
+                                duration=total_period / 44100)
 
         stereo_cycle = np.vstack((l_cycle, r_cycle)).T
 
