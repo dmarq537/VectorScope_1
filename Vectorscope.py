@@ -72,18 +72,24 @@ class AudioLoaderThread(QThread):
                 frames = wav_file.readframes(-1)
                 sample_rate = wav_file.getframerate()
                 channels = wav_file.getnchannels()
-                
+
                 audio_array = np.frombuffer(frames, dtype=np.int16)
-                
+                audio_array = audio_array.reshape(-1, channels)
+
                 if channels == 1:
-                    audio_array = np.repeat(audio_array, 2)
-                
+                    audio_array = np.repeat(audio_array, 2, axis=1)
+
                 if sample_rate != 44100:
                     resample_factor = 44100 / sample_rate
-                    new_length = int(len(audio_array) * resample_factor)
-                    indices = np.linspace(0, len(audio_array) - 1, new_length)
-                    audio_array = np.interp(indices, np.arange(len(audio_array)), audio_array).astype(np.int16)
-                
+                    new_length = int(audio_array.shape[0] * resample_factor)
+                    indices = np.linspace(0, audio_array.shape[0] - 1, new_length)
+                    resampled = []
+                    for ch in range(audio_array.shape[1]):
+                        resampled.append(
+                            np.interp(indices, np.arange(audio_array.shape[0]), audio_array[:, ch])
+                        )
+                    audio_array = np.stack(resampled, axis=1).astype(np.int16)
+
                 audio_data = audio_array.reshape(-1, 2) / 32768.0
                 return {'data': audio_data, 'wav_path': self.file_path, 'temp': False}
         
